@@ -26,6 +26,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import hu.ait.traveljourneyapp.data.JourneyWithId
 import hu.ait.traveljourneyapp.data.Journey
+import android.app.DatePickerDialog
+import android.widget.DatePicker
+import androidx.compose.ui.platform.LocalContext
+import hu.ait.traveljourneyapp.ui.screen.newjourney.AddJourneyDialog
+import hu.ait.traveljourneyapp.ui.screen.newjourney.AddJourneyViewModel
+import java.util.*
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,13 +92,15 @@ fun JourneyListScreen(
             }
         }
     }
+    val addJourneyViewModel: AddJourneyViewModel = viewModel()
     if (showDialog) {
         AddJourneyDialog(
             onDismiss = { showDialog = false },
-            onSave = { journey ->
-                viewModel.saveNewJourney(journey)
+            onSave = { journey->
+                addJourneyViewModel.saveNewJourney(journey)
                 showDialog = false
-            }
+            },
+            viewModel = addJourneyViewModel
         )
     }
 }
@@ -137,61 +146,3 @@ fun JourneyCard(
         }
     }
 }
-
-@Composable
-fun AddJourneyDialog(
-    onDismiss: () -> Unit,
-    onSave: (Journey) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var country by remember { mutableStateOf("") }
-    var rating by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("New Journey") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                TextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Trip Name") },
-                    singleLine = true
-                )
-                TextField(
-                    value = country,
-                    onValueChange = { country = it },
-                    label = { Text("Country") },
-                    singleLine = true
-                )
-                TextField(
-                    value = rating,
-                    onValueChange = { rating = it },
-                    label = { Text("Rating (1–10)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val uid = FirebaseAuth.getInstance().currentUser?.uid.orEmpty()
-                val journey = Journey(
-                    uid = uid,
-                    name = (if (name.isNotBlank()) name else null).toString(),
-                    country = (if (country.isNotBlank()) country else null).toString(),
-                    overallRating = rating.toIntOrNull()
-                )
-                onSave(journey)
-            }) {
-                Text("Save")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-

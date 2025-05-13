@@ -16,7 +16,7 @@ data class Journey(
     var favoriteQuotes: String = "",
     var wordsLearned: String = "",
     var factsLearned: String = "",
-    var topActivities: List<String> = emptyList(),
+    var topActivities: List<String>? = emptyList(),
     var galleryImageUrls: List<String> = emptyList(),  // Store image URLs instead of Image objects
     var flagUrl: String = ""  // Store a URL to the flag image
 )

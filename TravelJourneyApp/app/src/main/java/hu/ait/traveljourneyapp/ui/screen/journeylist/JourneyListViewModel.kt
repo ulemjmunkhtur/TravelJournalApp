@@ -8,6 +8,7 @@ import hu.ait.traveljourneyapp.data.Journey
 import hu.ait.traveljourneyapp.data.JourneyWithId
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
+import java.util.Locale
 
 class JourneyListViewModel : ViewModel() {
 
@@ -54,7 +55,6 @@ class JourneyListViewModel : ViewModel() {
             .document(journeyId)
             .delete()
     }
-
     fun saveNewJourney(journey: Journey) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         FirebaseFirestore.getInstance()
@@ -63,6 +63,12 @@ class JourneyListViewModel : ViewModel() {
             .collection("journeys")
             .add(journey)
     }
+
+
+
+
+
+
 
 
 }
