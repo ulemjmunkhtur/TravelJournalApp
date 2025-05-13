@@ -16,13 +16,20 @@ googleid = "1.1.1"
 firebaseDatabase = "21.0.0"
 navigationRuntimeKtx = "2.8.9"
 navigationCompose = "2.8.9"
-
 kotlinxSerialization="1.7.3"
 serialization="2.0.21"
 firebaseFirestore = "25.1.3"
 firebaseFirestoreVersion = "25.1.4"
+mapsCompose = "4.2.0"
+playServicesMaps = "19.2.0"
+retrofit = "2.9.0"
 
 [libraries]
+google-maps-compose = { group = "com.google.maps.android", name = "maps-compose", version.ref = "mapsCompose" }
+google-maps-playservices = { group = "com.google.android.gms", name = "play-services-maps", version.ref = "playServicesMaps" }
+retrofit-core = { group = "com.squareup.retrofit2", name = "retrofit", version.ref = "retrofit" }
+retrofit-gson = { group = "com.squareup.retrofit2", name = "converter-gson", version.ref = "retrofit" }
+
 kotlinx-serialization = {group="org.jetbrains.kotlinx", name="kotlinx-serialization-json", version.ref="kotlinxSerialization"}
 
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }

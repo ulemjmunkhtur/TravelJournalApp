@@ -66,6 +66,12 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation("io.coil-kt:coil-compose:2.5.0")
 
+    implementation(libs.google.maps.compose)
+    implementation(libs.google.maps.playservices)
+    implementation(libs.retrofit.core)
+    implementation(libs.retrofit.gson)
+
+
 
     implementation(libs.androidx.navigation.runtime.ktx)
     implementation(libs.androidx.navigation.compose)

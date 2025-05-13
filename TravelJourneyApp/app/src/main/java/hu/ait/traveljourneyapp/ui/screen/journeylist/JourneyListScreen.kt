@@ -28,10 +28,29 @@ import hu.ait.traveljourneyapp.data.JourneyWithId
 import hu.ait.traveljourneyapp.data.Journey
 import android.app.DatePickerDialog
 import android.widget.DatePicker
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import hu.ait.traveljourneyapp.ui.screen.newjourney.AddJourneyDialog
 import hu.ait.traveljourneyapp.ui.screen.newjourney.AddJourneyViewModel
 import java.util.*
+
+import com.google.maps.android.compose.*
+import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
+
+import hu.ait.traveljourneyapp.data.navigation.RetrofitInstance
+import android.content.Context
+import android.widget.Toast
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+
+
+fun getGeoApiKey(context: Context): String {
+    val appInfo = context.packageManager.getApplicationInfo(context.packageName, android.content.pm.PackageManager.GET_META_DATA)
+    return appInfo.metaData.getString("com.google.android.geo.API_KEY") ?: ""
+}
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +84,10 @@ fun JourneyListScreen(
         }
     ) { paddingValues ->
 
-        Column(modifier = Modifier.padding(paddingValues)) {
+        Column(modifier = Modifier
+            .padding(paddingValues)
+            .fillMaxSize()
+        ) {
             when (val state = journeyListState.value) {
                 is JourneyUIState.Init -> {
                     Text("Initializing...")
@@ -77,7 +99,8 @@ fun JourneyListScreen(
                     Text("Error: ${state.error}")
                 }
                 is JourneyUIState.Success -> {
-                    LazyColumn {
+                    JourneyMap(journeys = state.journeyList.map { it.journey })
+                    LazyColumn(modifier = Modifier.weight(1f)) {
                         items(state.journeyList) { journeyWithId ->
                             JourneyCard(
                                 journey = journeyWithId,
@@ -92,18 +115,37 @@ fun JourneyListScreen(
             }
         }
     }
+
     val addJourneyViewModel: AddJourneyViewModel = viewModel()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     if (showDialog) {
         AddJourneyDialog(
             onDismiss = { showDialog = false },
-            onSave = { journey->
-                addJourneyViewModel.saveNewJourney(journey)
-                showDialog = false
+            onSave = { journey ->
+                scope.launch {
+                    try {
+                        val apiKey = getGeoApiKey(context)
+                        val response = RetrofitInstance.api.getCoordinates(journey.country, apiKey)
+
+                        if (response.results.isNotEmpty()) {
+                            addJourneyViewModel.saveNewJourney(journey)
+                            showDialog = false
+                        } else {
+                            Toast.makeText(context, "Invalid country name.", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(context, "Geocoding failed: ${e.localizedMessage}", Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
             viewModel = addJourneyViewModel
         )
     }
+
 }
+
 
 @Composable
 fun JourneyCard(
@@ -143,6 +185,50 @@ fun JourneyCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun JourneyMap(journeys: List<Journey>) {
+    val coroutineScope = rememberCoroutineScope()
+    val cameraPositionState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(LatLng(20.0, 0.0), 2f)
+    }
+
+    val journeyCoords = remember { mutableStateMapOf<String, LatLng>() }
+
+    LaunchedEffect(journeys) {
+        journeys.forEach { journey ->
+            if (!journeyCoords.containsKey(journey.name)) {
+                coroutineScope.launch {
+                    try {
+                        val res = RetrofitInstance.api.getCoordinates(
+                            journey.country,
+                            "YOUR_GEOCODING_API_KEY"
+                        )
+                        res.results.firstOrNull()?.geometry?.location?.let {
+                            journeyCoords[journey.name] = LatLng(it.lat, it.lng)
+                        }
+                    } catch (e: Exception) {
+                        // Handle failure
+                    }
+                }
+            }
+        }
+    }
+
+    GoogleMap(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(250.dp),
+        cameraPositionState = cameraPositionState
+    ) {
+        journeyCoords.forEach { (name, coords) ->
+            Marker(
+                state = MarkerState(position = coords),
+                title = name
+            )
         }
     }
 }

@@ -15,7 +15,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import hu.ait.traveljourneyapp.data.Journey
@@ -40,47 +44,71 @@ fun JourneyScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            TextButton(onClick = navBack) {
+                Text("< Back")
+            }
+
+            Text(
+                text = "${trip.name ?: "-"}, ${trip.country ?: "-"}",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold
+            )
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalAlignment = Alignment.Top,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text(text = "Edit", style = MaterialTheme.typography.titleMedium)
                 trip.flagUrl?.let {
                     Image(
                         painter = rememberAsyncImagePainter(it),
                         contentDescription = "Flag",
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier
+                            .height(100.dp)
+                            .width(100.dp)
                     )
                 }
+                Column(horizontalAlignment = Alignment.Start) {
+                    Text("Dates: ${trip.startDate ?: "-"} to ${trip.endDate ?: "-"}")
+                    RatingRow("Overall", trip.overallRating ?: 0) {
+                        viewModel.updateField("overallRating", it)
+                        viewModel.saveJourney(journeyId, {}, {})
+                    }
+                    RatingRow("Public Transport", trip.publicTransportationRating ?: 0) {
+                        viewModel.updateField("publicTransportationRating", it)
+                        viewModel.saveJourney(journeyId, {}, {})
+                    }
+                    RatingRow("Food", trip.foodRating ?: 0) {
+                        viewModel.updateField("foodRating", it)
+                        viewModel.saveJourney(journeyId, {}, {})
+                    }
+                }
             }
 
-            Text("Name: ${trip.name ?: "-"}")
-            Text("Country: ${trip.country ?: "-"}")
-            Text("Dates: ${trip.startDate ?: "-"} to ${trip.endDate ?: "-"}")
-
-            RatingRow("Overall", trip.overallRating ?: 0) { viewModel.updateField("overallRating", it) }
-            RatingRow("Public Transport", trip.publicTransportationRating ?: 0) { viewModel.updateField("publicTransportationRating", it) }
-            RatingRow("Food", trip.foodRating ?: 0) { viewModel.updateField("foodRating", it) }
-
-            EditableSection("Overall Thoughts", trip.overallThoughts) {
+            EditableSectionFullWidth("Overall Thoughts", trip.overallThoughts ?: "") {
                 viewModel.updateField("overallThoughts", it)
+                viewModel.saveJourney(journeyId, {}, {})
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                EditableSection("Favorite Memory", trip.favoriteMemories) {
+                EditableSection("Favorite Memory", trip.favoriteMemories ?: "") {
                     viewModel.updateField("favoriteMemories", it)
+                    viewModel.saveJourney(journeyId, {}, {})
                 }
-                EditableSection("Favorite Quotes", trip.favoriteQuotes) {
+                EditableSection("Favorite Quotes", trip.favoriteQuotes ?: "") {
                     viewModel.updateField("favoriteQuotes", it)
+                    viewModel.saveJourney(journeyId, {}, {})
                 }
             }
 
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                EditableSection("Words Learned", trip.wordsLearned) {
+                EditableSection("Words Learned", trip.wordsLearned ?: "") {
                     viewModel.updateField("wordsLearned", it)
+                    viewModel.saveJourney(journeyId, {}, {})
                 }
-                EditableSection("Facts Learned", trip.factsLearned) {
+                EditableSection("Facts Learned", trip.factsLearned ?: "") {
                     viewModel.updateField("factsLearned", it)
+                    viewModel.saveJourney(journeyId, {}, {})
                 }
             }
 
@@ -90,9 +118,12 @@ fun JourneyScreen(
                     Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .background(Color.LightGray, RoundedCornerShape(8.dp))
+                            .background(Color(0xFFFFD1DC), RoundedCornerShape(4.dp))
                     ) {
-                        Text(trip.topActivities?.get(idx) ?: "")
+                        Text(
+                            trip.topActivities?.get(idx) ?: "",
+                            modifier = Modifier.padding(4.dp)
+                        )
                     }
                 }
             }
@@ -118,43 +149,129 @@ fun RatingRow(label: String, rating: Int, onRatingChange: (Int) -> Unit) {
 }
 
 @Composable
-fun EditableSection(label: String, content: String?, onUpdate: (String) -> Unit) {
+fun EditableSection(label: String, content: String, onUpdate: (String) -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
-    var tempText by remember { mutableStateOf(content ?: "") }
+    var tempText by remember { mutableStateOf(content) }
 
     Column(
         modifier = Modifier
-            .width(160.dp)
+            .width(180.dp)
+            .height(120.dp)
             .clickable { showDialog = true }
             .padding(8.dp)
-            .background(Color(0xFFF0F0F0), RoundedCornerShape(8.dp))
+            .background(Color(0xFFEBDCFB), RoundedCornerShape(12.dp))
     ) {
-        Text(text = "$label:", style = MaterialTheme.typography.bodySmall)
-        Text(text = content ?: "Tap to edit", modifier = Modifier.padding(4.dp))
+        Text(text = "$label:", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = content,
+            modifier = Modifier.padding(4.dp),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 
     if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            title = { Text(text = "Edit $label") },
-            text = {
-                TextField(
-                    value = tempText,
-                    onValueChange = { tempText = it },
-                    label = { Text(label) }
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    onUpdate(tempText)
-                    showDialog = false
-                }) { Text("Save") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text("Cancel")
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                color = Color(0xFFFFF8DC),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Edit $label", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    TextField(
+                        value = tempText,
+                        onValueChange = { tempText = it },
+                        label = { Text(label) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        singleLine = false,
+                        maxLines = Int.MAX_VALUE
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                        Button(onClick = {
+                            onUpdate(tempText)
+                            showDialog = false
+                        }) { Text("Save") }
+                    }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun EditableSectionFullWidth(label: String, content: String, onUpdate: (String) -> Unit) {
+    var showDialog by remember { mutableStateOf(false) }
+    var tempText by remember { mutableStateOf(content) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clickable { showDialog = true }
+            .padding(8.dp)
+            .background(Color(0xFFEBDCFB), RoundedCornerShape(12.dp))
+    ) {
+        Text(text = "$label:", style = MaterialTheme.typography.bodySmall)
+        Text(
+            text = content,
+            modifier = Modifier.padding(4.dp),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
         )
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                color = Color(0xFFFFF8DC),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = "Edit $label", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    TextField(
+                        value = tempText,
+                        onValueChange = { tempText = it },
+                        label = { Text(label) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        singleLine = false,
+                        maxLines = Int.MAX_VALUE
+                    )
+                    Row(
+                        horizontalArrangement = Arrangement.End,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        TextButton(onClick = { showDialog = false }) { Text("Cancel") }
+                        Button(onClick = {
+                            onUpdate(tempText)
+                            showDialog = false
+                        }) { Text("Save") }
+                    }
+                }
+            }
+        }
     }
 }
